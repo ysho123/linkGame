@@ -1,0 +1,41 @@
+{
+  "appKey": "",
+  "appSecret": "",
+  "encryptJs": true,
+  "excludeScenes": [],
+  "fb-instant-games": {},
+  "includeAnySDK": false,
+  "includeSDKBox": false,
+  "inlineSpriteFrames": true,
+  "inlineSpriteFrames_native": true,
+  "jailbreakPlatform": false,
+  "md5Cache": true,
+  "mergeStartScene": false,
+  "oauthLoginServer": "",
+  "optimizeHotUpdate": false,
+  "orientation": {
+    "landscapeLeft": true,
+    "landscapeRight": true,
+    "portrait": false,
+    "upsideDown": false
+  },
+  "packageName": "org.cocos2d.linkGame",
+  "privateKey": "",
+  "qqplay": {
+    "REMOTE_SERVER_ROOT": "",
+    "orientation": "portrait"
+  },
+  "renderMode": "0",
+  "startScene": "a4e6ca3e-aa24-43e1-8d10-f459d52cf7d7",
+  "title": "linkGame",
+  "webOrientation": "portrait",
+  "wechatgame": {
+    "REMOTE_SERVER_ROOT": "https://xcx-base.oss-cn-hangzhou.aliyuncs.com/line_game_20180914",
+    "appid": "wxa406f84cf12c7f30",
+    "isSubdomain": false,
+    "orientation": "portrait",
+    "subContext": "friend-sub"
+  },
+  "xxteaKey": "2fc6dc37-525f-41",
+  "zipCompressJs": true
+}
