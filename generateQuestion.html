@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+</head>
+<body>
+	<script type="text/javascript">
+
+		let m = 8;//m*m的棋盘
+		let x = 3;//x对球球
+		let maxStep = 40;//最大步长
+		let minStep = 13;//最小步长 (棋盘大了以后，需要优化最小步长来优化计算量，否则会算不出结果)
+		let addNum = 15;//一次生成多少个题目
+
+		let lv = 14; //新增题目的等级
+		let num = 46;//新增题目的起始下标    从1开始
+		let type = 1;//给哪个模式加题 1 普通 2限时
+
+		let gridlength = m*m;	
+		let question = []; //存所有生成的答案
+
+		let testCanCount = 0; //是否直接入库  (开关指针)
+
+		//主循环s
+		function mainLoop(){
+			//题目数
+			let questionNum = 0;	
+
+			while(questionNum < addNum){
+				// debugger;
+				let oneQuestion = this.getQuestion();
+
+				let flags = false;
+
+				if(oneQuestion){
+					for(let i=0;i<x;i++){
+						if(oneQuestion[i].length < 3 || oneQuestion[i].length > maxStep){
+							flags = true;
+							break;
+						}
+					}
+
+					if(flags){
+						continue;
+					}
+
+					question.push(oneQuestion)
+					questionNum ++ ;
+				}
+			}
+
+			// debugger;
+
+			for(let i=0;i<question.length;i++){
+				this.colorMap = [];
+
+				let answerData = question[i].join('#');
+
+				let questionData = [] ;
+				for(let t=0;t<m*m;t++){
+					questionData.push(0);
+				}
+
+				for(let j=0;j<question[i].length;j++){
+					let first = question[i][j][0];
+					let last = question[i][j][question[i][j].length-1];
+					questionData[first] = this.getColorNum();
+					questionData[last] = questionData[first];
+				}
+
+				let outData = {
+					'answer' : answerData,
+					'question' : questionData.toString(),
+					'length' : m,
+					'less_step' : x
+				}
+
+				let outPutFormat = {
+					lv : lv,
+					num : i + num ,
+					type : 1,
+				}
+
+				// lv=10&num=30&less_step=9&length=10&question=1,1,1,1,1,1&answer=1,2,3,4,5,6,7&type=2&time=12
+
+				console.log({
+							...outData,
+							...outPutFormat
+						});
+				
+				if(testCanCount){	
+					$.ajax({
+						// url : "http://192.168.2.112/get/saveLine.php",
+						url : 'https://www.xc82.cn/line/Game/addLevelItems',
+						type : 'POST',
+						data : {
+							...outData,
+							...outPutFormat
+						},
+						success : function(result,status,xhr){
+							console.log('发送success');
+						}
+					});
+				}
+
+
+				// http://doc.nihaoyuming34.cn/web/#/10?page_id=269
+			}
+		}
+
+		function getColorNum(){
+			while(true){
+				let num = Math.floor(Math.random()*10) + 1;//1-10的value
+				if(this.colorMap.includes(num)){
+					continue;
+				}
+
+				this.colorMap.push(num);
+				return num;
+			}
+		}
+
+		function getQuestion(){
+			let chessWhole = [];//生成一个棋盘
+
+			//生成棋盘数据
+			for(let i=0;i<gridlength;i++){
+				chessWhole.push({
+					checked : 0,
+					index : i
+				});
+			}
+
+			let questionArr =[];//生成一个3条那么长的路径
+
+			let count = 0;
+			for(let i=0;i<x;i++){ //注 ： x 是指三条线路连完所有
+				let data = this.getOneRouter(chessWhole);
+				questionArr.push(data.arrTemp);
+				chessWhole = data.chessData;
+
+				count += data.arrTemp.length;
+				if( count==m*m && i != (x-1)){
+					return false;
+				}
+			}
+
+			let gridNum = 0;
+			for(let i=0;i<x;i++){  //注 ： x 是指球的对数，即有多少条线
+				gridNum += questionArr[i].length;
+			}
+
+			if( gridNum == m*m){
+				debugger;
+				return questionArr;
+			}else{
+				return false;
+			}
+		}
+
+		function getOneRouter(chessWhole){
+			let curPointIndex = this.getOnePoint(chessWhole);
+
+			let arrTemp = [];
+
+			chessWhole[curPointIndex].checked = true;//起点标为选定
+
+			arrTemp.push(curPointIndex);
+			tmpStep = 1;
+
+			let oneRout = this.getNextPoint(curPointIndex,chessWhole,arrTemp);
+
+			return oneRout;
+		}
+
+		//随便得到一个没走过的点
+		function getOnePoint(chessWhole){
+			let flag= true;
+			let pointIndex;
+
+			let times = 0;
+
+			while(flag){
+				
+				pointIndex = Math.floor(Math.random()*gridlength);//
+
+				if(chessWhole[pointIndex].checked){
+					times ++ ;
+					continue;
+				}
+
+				flag = false;
+			}
+
+			return pointIndex;
+		}
+
+
+		//判断方向
+		function getNextPoint(index,chessWhole,arrTemp){
+			let index_x = index % m ;
+			let index_y = Math.floor(index/m);
+
+			if( tmpStep > minStep ){
+				if(Math.floor(Math.random()*5) == 1 || tmpStep > maxStep){
+					//停止开关 4分之一概率停止
+					return {
+						arrTemp :arrTemp,
+						chessData : chessWhole
+					};
+				}
+			}
+
+			//如果来到了死胡同
+			let left_cannot = false;
+			let right_cannot = false;
+			let up_cannot = false;
+			let down_cannot = false;
+
+			while(true){
+				if(left_cannot && right_cannot && up_cannot && down_cannot){
+					return {
+						arrTemp :arrTemp,
+						chessData : chessWhole
+					};
+				}
+
+				let direction = Math.floor(Math.random()*4 + 1);//
+				//每一个点都有4个潜在可走方向，下方判断需干掉边界处的点，和已经被赋值的点 1 左 2 上  3 右 4下
+
+				if( index_x-1<0 && direction==1 ){
+					left_cannot = true;
+					continue;
+				}
+				if( index_x+1>=m && direction==3){
+					right_cannot = true;
+					continue;
+				}
+				if( index_y-1<0 && direction==2){
+					up_cannot = true;
+					continue;
+				}
+				if( index_y+1>=m && direction==4){
+					down_cannot = true;
+					continue;
+				}
+
+				let nextPoint;
+				if(direction==1){
+					nextPoint = (index_x-1) + index_y*m;
+					if(chessWhole[nextPoint].checked){
+						left_cannot = true;
+						continue;
+					}
+				}
+				if(direction==2){
+					nextPoint = index_x + (index_y-1)*m;
+					if(chessWhole[nextPoint].checked){
+						up_cannot = true;
+						continue;
+					}
+				}
+				if(direction==3){
+					nextPoint = (index_x+1) + index_y*m;
+					if(chessWhole[nextPoint].checked){
+						right_cannot = true;
+						continue;
+					}
+				}
+				if(direction==4){
+					nextPoint = index_x + (index_y+1)*m;
+					if(chessWhole[nextPoint].checked){
+						down_cannot = true;
+						continue;
+					}
+				}
+
+				chessWhole[nextPoint].checked = true;
+
+				arrTemp.push(nextPoint);
+				tmpStep +=1;
+
+				return getNextPoint(nextPoint,chessWhole,arrTemp);
+			}
+		}
+
+		this.mainLoop();
+
+	</script>
+
+</body>
+</html>
